@@ -1,0 +1,10 @@
+.env
+config.php
+*.sqlite
+*.sqlite3
+storage/*
+!storage/.htaccess
+uploads/*
+!uploads/.htaccess
+.DS_Store
+node_modules/
