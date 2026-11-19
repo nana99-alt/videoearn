@@ -30,7 +30,6 @@ function cfg(?string $key = null): mixed {
     return $key === null ? $config : ($config[$key] ?? null);
 }
 date_default_timezone_set((string)cfg('timezone'));
-
 function db(): PDO {
     static $pdo;
     if ($pdo instanceof PDO) return $pdo;
@@ -60,3 +59,4 @@ function rate_limit(string $key, int $max = 10, int $window = 60): void { $now =
 function google_token(): string { $q = db()->query("SELECT value FROM settings WHERE name='google_refresh_token'"); $r = $q->fetch(); return $r['value'] ?? ''; }
 function google_access_token(): string { $refresh = google_token(); if (!$refresh) throw new RuntimeException('Google Drive belum terhubung. Admin perlu menghubungkan akun Google.'); $g = cfg('google'); $ch = curl_init('https://oauth2.googleapis.com/token'); curl_setopt_array($ch, [CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>http_build_query(['client_id'=>$g['client_id'],'client_secret'=>$g['client_secret'],'refresh_token'=>$refresh,'grant_type'=>'refresh_token']),CURLOPT_TIMEOUT=>30]); $raw=curl_exec($ch); $err=curl_error($ch); curl_close($ch); if (!$raw) throw new RuntimeException('Google OAuth gagal: '.$err); $data=json_decode($raw,true); if (empty($data['access_token'])) throw new RuntimeException('Token Google gagal diperbarui.'); return $data['access_token']; }
 function google_api(string $method, string $url, string $token, array $headers = [], ?string $body = null): array { $ch=curl_init($url); curl_setopt_array($ch,[CURLOPT_CUSTOMREQUEST=>$method,CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>array_merge(['Authorization: Bearer '.$token],$headers),CURLOPT_TIMEOUT=>180]); if ($body!==null) curl_setopt($ch,CURLOPT_POSTFIELDS,$body); $out=curl_exec($ch); $status=curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch); if ($out===false) throw new RuntimeException($err); return [$status,$out]; }
+function google_make_public(string $fileId): void { [$status, $raw] = google_api('POST', 'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId).'/permissions', google_access_token(), ['Content-Type: application/json'], json_encode(['type'=>'anyone','role'=>'reader'], JSON_THROW_ON_ERROR)); if ($status < 200 || $status >= 300) throw new RuntimeException('File tersimpan, tetapi izin publik gagal.'); }

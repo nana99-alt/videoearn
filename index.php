@@ -9,7 +9,7 @@ $user = current_user();
 <link rel="stylesheet" href="assets/style.css">
 </head><body><div class="app">
 <header class="top"><a class="brand" href="index.php">Video<span>Earn</span></a>
-<div class="top-actions"><?php if($user): ?><a class="chip" href="?page=wallet">🪙 <?=number_format((int)$user['tokens'])?></a><?php else: ?><a class="chip" href="?page=login">Masuk</a><?php endif; ?></div></header>
+<div class="top-actions"><?php if($user && $user['role']==='admin'): ?><a class="chip" href="admin.php">Admin</a><?php endif; ?><?php if($user): ?><a class="chip" href="?page=wallet">🪙 <?=number_format((int)$user['tokens'])?></a><?php else: ?><a class="chip" href="?page=login">Masuk</a><?php endif; ?></div></header>
 <?php if(isset($_SESSION['flash'])): ?><div class="flash"><?=e($_SESSION['flash']);unset($_SESSION['flash']);?></div><?php endif; ?>
 <?php if($page==='login' || $page==='register'): ?>
 <section class="auth"><h1><?=$page==='login'?'Masuk ke VideoEarn':'Buat akun VideoEarn'?></h1>
@@ -24,6 +24,7 @@ $user = current_user();
 <div class="panel"><h3>Riwayat token</h3><?php $q=db()->prepare("SELECT * FROM token_ledger WHERE user_id=? ORDER BY id DESC LIMIT 30");$q->execute([$user['id']]);$rows=$q->fetchAll(); if(!$rows):?><p class="muted">Belum ada transaksi.</p><?php else: foreach($rows as $r):?><div class="line"><span><?=e($r['description'])?></span><b><?=((int)$r['amount']>0?'+':'')?><?=number_format((int)$r['amount'])?></b></div><?php endforeach;endif;?></div><p class="muted">Penukaran uang belum diaktifkan. Aktifkan setelah aturan reward, verifikasi, dan pembayaran disiapkan.</p></section>
 <?php elseif($page==='profile'): require_login(); ?>
 <section class="content"><div class="profile"><div class="avatar big"><?=e(strtoupper(substr($user['username'],0,1)))?></div><h1><?=e($user['username'])?></h1><p class="muted"><?=e($user['email'])?></p></div>
+<div class="panel"><h3>Upload saya</h3><?php $mine=db()->prepare("SELECT status,caption,created_at FROM videos WHERE user_id=? ORDER BY id DESC LIMIT 10");$mine->execute([$user['id']]);$myVideos=$mine->fetchAll();if(!$myVideos):?><p class="muted">Belum ada upload.</p><?php else:foreach($myVideos as $mv):?><div class="line"><span><?=e($mv['caption']?:'Video tanpa caption')?></span><b><?=e($mv['status'])?></b></div><?php endforeach;endif;?></div>
 <div class="panel"><h3>Akun Google Drive VideoEarn</h3><p class="muted">Video akan disimpan ke Google Drive pemilik aplikasi menggunakan koneksi OAuth admin.</p><a class="button" href="google.php?action=connect">Hubungkan Google Drive admin</a></div><div class="panel"><a href="auth.php?action=logout">Keluar</a></div></section>
 <?php elseif($page==='upload'): require_login(); ?>
 <section class="content"><h1>Upload video</h1><form class="panel" method="post" action="upload.php" enctype="multipart/form-data"><?=csrf_field()?><label>File video</label><input type="file" name="video" accept="video/mp4,video/webm,video/quicktime" required><label>Caption</label><textarea name="caption" maxlength="500" placeholder="Tulis caption video..."></textarea><button class="primary">Upload video</button><p class="muted">Maksimum <?= (int)cfg('upload_max_mb')?> MB. Video akan masuk status menunggu moderasi.</p></form></section>

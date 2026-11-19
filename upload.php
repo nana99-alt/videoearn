@@ -9,8 +9,7 @@ try{
  [$status,$raw]=google_api('POST','https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size',$token,['Content-Type: multipart/related; boundary='.$boundary],$body);
  $data=json_decode($raw,true);if($status<200||$status>=300||empty($data['id']))throw new RuntimeException('Google Drive menolak upload: '.($data['error']['message']??'HTTP '.$status));
  $fileId=$data['id'];
- [$ps,$pr]=google_api('POST','https://www.googleapis.com/drive/v3/files/'.$fileId.'/permissions',$token,['Content-Type: application/json'],json_encode(['type'=>'anyone','role'=>'reader']));
- if($ps<200||$ps>=300)throw new RuntimeException('File tersimpan, tetapi izin publik gagal. Hubungi admin.');
+ // File tetap privat selama moderasi; admin akan mempublikasikannya saat approval.
  $q=db()->prepare("INSERT INTO videos(user_id,drive_file_id,mime_type,caption,status) VALUES(?,?,?,?, 'pending')");$q->execute([$_SESSION['uid'],$fileId,$mime,trim($_POST['caption']??'')]);
  flash('Video berhasil diunggah dan menunggu persetujuan admin.');header('Location: index.php');exit;
 }catch(Throwable $e){flash($e->getMessage());header('Location: index.php?page=upload');exit;}
